@@ -193,8 +193,11 @@ There are various aspects to consider when thinking about this problem:
 Here is an example of a [published baseline model on this problem](http://yann.lecun.com/exdb/publis/pdf/sermanet-ijcnn-11.pdf). It's not required to be familiar with the approach used in the paper but, it's good practice to try to read papers like these.
 
 ### Pre-process the Data Set (normalization, grayscale, etc.)
+####1. Describe how, and identify where in your code, you preprocessed the image data. What tecniques were chosen and why did you choose these techniques? Consider including images showing the output of each preprocessing technique. Pre-processing refers to techniques such as converting to grayscale, normalization, etc
 
-Minimally, the image data should be normalized so that the data has mean zero and equal variance. For image data, `(pixel - 128)/ 128` is a quick way to approximately normalize the data and can be used in this project. 
+Minimally, the image data should be normalized so that the data has mean zero and equal variance. For image data, `(pixel - 128)/ 128` is a quick way to approximately normalize the data and can be used in this project. Normalization is important in ANNs because real data obtained from experiments and analysis most times are distant from each other. The effect is great because the common activation functions such as sigmoid, hyperbolic tangent and gaussian produce result that ranges between [0,1] or [-1,1]. It is important to normalise the values to be in that range. By normalizing all of our inputs to a standard scale, we're allowing the network to more quickly learn the optimal parameters for each input node.
+
+Additionally, it's useful to ensure that our inputs are roughly in the range of -1 to 1 to avoid weird mathematical artifacts associated with floating point number precision. In short, computers lose accuracy when performing math operations on really large or really small numbers. Moreover, if your inputs and target outputs are on a completely different scale than the typical -1 to 1 range, the default parameters for your neural network (ie. learning rates) will likely be ill-suited for your data.
 
 Other pre-processing steps are optional. You can try different techniques to see if it improves performance. 
 
@@ -225,6 +228,46 @@ rate = 0.001
 
 ### Model Architecture
 
+The code for calculating the accuracy of the model is in cell 10, 11, 12.
+
+My final model results were:
+
+training set accuracy of 0.989 (overfitting the cross validation)
+validation set accuracy of 0.93
+
+To train the model, I started from a a well known architecture (LeNet) because of simplicity of implementation and because it performs well on recognition task with tens of classes (such as carachter recognition). After a few runs with this architecture I noted that the model tended to overfit to the original training set.
+
+I used the same parameter given in LeNet lab. Its training accuracy initially was around 90%, so I thought the filter depth was not large enough to capture images' shapes and contents. Previously the filter depth was 6 for the first layer and 12 for the second.
+
+I then added a drop out layer, which is supposed to used to prevent overfitting, but I found a drop out layer could sometimes increase the accuracy to 95%. The final model includes
+mu = 0
+sigma = 0.1
+```python
+Layer 1: Convolutional(5 X 5). Input = 32x32x3. Output = 28x28x6.
+Activation.(ReLU)
+Pooling(2 X 2). Input = 28x28x6. Output = 14x14x6.
+Layer 2: Convolutional(5 X 5). Output = 10x10x16.
+Activation.(ReLU)
+Pooling(2 X 2). Input = 10x10x16. Output = 5x5x16.
+Flatten. Input = 5x5x16. Output = 400.
+Layer 3: Fully Connected. Input = 400. Output = 120.
+Activation.(ReLU)
+Layer 4: Fully Connected. Input = 120. Output = 84.
+Activation.(ReLU)
+Layer 5: Fully Connected. Input = 84. Output = 10.
+```
+
+
+I also tuned epoch, batch_size, and rate parameters, and settled at
+
+##hyperparameters:
+EPOCHS = 35
+BATCH_SIZE = 60
+rate = 0.001
+
+I have my explainations of the effect of the drop out layer after I've seen some of the training data. Some images are too dark to see the sign, so it seems that these images act as noises in the training data and drop out layer can reduce the negative effects on learning.
+
+The final accuracy in validation set is around 0.936
 
 ```python
 ### Define your architecture here.
@@ -487,7 +530,7 @@ with tf.Session() as sess:
 ```
 
     INFO:tensorflow:Restoring parameters from ./lenet
-    Test Accuracy = 0.916
+    Test Accuracy = 0.936
 
 
 ---
@@ -499,6 +542,8 @@ To give yourself more insight into how your model is working, download at least 
 You may find `signnames.csv` useful as it contains mappings from the class id (integer) to the actual sign name.
 
 ### Load and Output the Images
+
+I want to see how the classifier performs on similar type of traffic signs. I Chose one sign which reads clear and one side slightly tilted since when blurred the number in the sign is not very ligible. Also i chode different types of caution sign like deer jumping, slippery road and the bike crossing. I wanted to see if the classifier coulf actually differntiate between similar looking images.
 
 
 ```python
@@ -583,6 +628,15 @@ print("accuracy = ", (count/len(output)*100), "%")
 ```
 
     accuracy =  0.0 %
+ 
+### Question 7
+Is your model able to perform equally well on captured pictures when compared to testing on the dataset? The simplest way to do this check the accuracy of the predictions. For example, if the model predicted 1 out of 5 signs correctly, it's 20% accurate.
+
+NOTE: You could check the accuracy manually by using signnames.csv (same directory). This file has a mapping from the class id (0-42) to the corresponding sign name. So, you could take the class id the model outputs, lookup the name in signnames.csv and see if it matches the sign from the image.
+
+Answer:
+
+Umm...  I do not think the model performed accurately. I guess it is a fault on my side too i should have tried it with different sets of images. I guess i did not have enough time to try on multiple sets of images and also i guess the existing set is a little bit challenging. I tried 5 images it predicted 1 out of 5 correctly for the initial set but the images i submitted were predicted 0% accurately. 
 
 
 ### Output Top 5 Softmax Probabilities For Each Image Found on the Web
@@ -664,61 +718,5 @@ for i in range (0, len(web_imgs_class)):
     softmax probabilities [ 0.40232021  0.30905971  0.13223937  0.053587    0.04113337]
 
 
-### Project Writeup
+For the softmax probablities i guess they are fairly inaccurately accurate. It really mispredicts the signs with a high probability, atleat for the 1st second and the 4th image. I guess i might have to improve my model and also have other set of images and try to find what the output looks like.
 
-Once you have completed the code implementation, document your results in a project writeup using this [template](https://github.com/udacity/CarND-Traffic-Sign-Classifier-Project/blob/master/writeup_template.md) as a guide. The writeup can be in a markdown or pdf file. 
-
-> **Note**: Once you have completed all of the code implementations and successfully answered each question above, you may finalize your work by exporting the iPython Notebook as an HTML document. You can do this by using the menu above and navigating to  \n",
-    "**File -> Download as -> HTML (.html)**. Include the finished document along with this notebook as your submission.
-
----
-
-## Step 4 (Optional): Visualize the Neural Network's State with Test Images
-
- This Section is not required to complete but acts as an additional excersise for understaning the output of a neural network's weights. While neural networks can be a great learning device they are often referred to as a black box. We can understand what the weights of a neural network look like better by plotting their feature maps. After successfully training your neural network you can see what it's feature maps look like by plotting the output of the network's weight layers in response to a test stimuli image. From these plotted feature maps, it's possible to see what characteristics of an image the network finds interesting. For a sign, maybe the inner network feature maps react with high activation to the sign's boundary outline or to the contrast in the sign's painted symbol.
-
- Provided for you below is the function code that allows you to get the visualization output of any tensorflow weight layer you want. The inputs to the function should be a stimuli image, one used during training or a new one you provided, and then the tensorflow variable name that represents the layer's state during the training process, for instance if you wanted to see what the [LeNet lab's](https://classroom.udacity.com/nanodegrees/nd013/parts/fbf77062-5703-404e-b60c-95b78b2f3f9e/modules/6df7ae49-c61c-4bb2-a23e-6527e69209ec/lessons/601ae704-1035-4287-8b11-e2c2716217ad/concepts/d4aca031-508f-4e0b-b493-e7b706120f81) feature maps looked like for it's second convolutional layer you could enter conv2 as the tf_activation variable.
-
-For an example of what feature map outputs look like, check out NVIDIA's results in their paper [End-to-End Deep Learning for Self-Driving Cars](https://devblogs.nvidia.com/parallelforall/deep-learning-self-driving-cars/) in the section Visualization of internal CNN State. NVIDIA was able to show that their network's inner weights had high activations to road boundary lines by comparing feature maps from an image with a clear path to one without. Try experimenting with a similar test to show that your trained network's weights are looking for interesting features, whether it's looking at differences in feature maps from images with or without a sign, or even what feature maps look like in a trained network vs a completely untrained one on the same sign image.
-
-<figure>
- <img src="visualize_cnn.png" width="380" alt="Combined Image" />
- <figcaption>
- <p></p> 
- <p style="text-align: center;"> Your output should look something like this (above)</p> 
- </figcaption>
-</figure>
- <p></p> 
-
-
-
-```python
-### Visualize your network's feature maps here.
-### Feel free to use as many code cells as needed.
-
-# image_input: the test image being fed into the network to produce the feature maps
-# tf_activation: should be a tf variable name used during your training procedure that represents the calculated state of a specific weight layer
-# activation_min/max: can be used to view the activation contrast in more detail, by default matplot sets min and max to the actual min and max values of the output
-# plt_num: used to plot out multiple different weight feature map sets on the same block, just extend the plt number for each new feature map entry
-
-def outputFeatureMap(image_input, tf_activation, activation_min=-1, activation_max=-1 ,plt_num=1):
-    # Here make sure to preprocess your image_input in a way your network expects
-    # with size, normalization, ect if needed
-    # image_input =
-    # Note: x should be the same name as your network's tensorflow data placeholder variable
-    # If you get an error tf_activation is not defined it may be having trouble accessing the variable from inside a function
-    activation = tf_activation.eval(session=sess,feed_dict={x : image_input})
-    featuremaps = activation.shape[3]
-    plt.figure(plt_num, figsize=(15,15))
-    for featuremap in range(featuremaps):
-        plt.subplot(6,8, featuremap+1) # sets the number of feature maps to show on each row and column
-        plt.title('FeatureMap ' + str(featuremap)) # displays the feature map number
-        if activation_min != -1 & activation_max != -1:
-            plt.imshow(activation[0,:,:, featuremap], interpolation="nearest", vmin =activation_min, vmax=activation_max, cmap="gray")
-        elif activation_max != -1:
-            plt.imshow(activation[0,:,:, featuremap], interpolation="nearest", vmax=activation_max, cmap="gray")
-        elif activation_min !=-1:
-            plt.imshow(activation[0,:,:, featuremap], interpolation="nearest", vmin=activation_min, cmap="gray")
-        else:
-            plt.imshow(activation[0,:,:, featuremap], interpolation="nearest", cmap="gray")
-```
